@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Text,
     View,
@@ -23,7 +23,45 @@ import LinearGradient from 'react-native-linear-gradient'
 import { COLORS, SIZES, icons, images, FONTS } from '../constants'
 import icon from '../constants/icon'
 
-const SignUp = (props) => {
+const SignUp = ({ navigation }) => {
+
+
+    const [showPassword, setShowPassword] = useState(false)
+
+
+
+    const [areas, setAreas] = useState([])
+    const [selectedArea, setSelectedArea] = useState(null);
+    const [modalVisible, setModalVisible] = useState(false)
+
+
+
+    useEffect(() => {
+        fetch("https://restcountries.eu/rest/v2/all")
+            .then(response => response.json())
+            .then(data => {
+                let areaData = data.map(item => {
+                    return {
+                        code: item.alpha2Code,
+                        name: item.name,
+                        callingCode: `+${item.callingCodes[0]}`,
+                        flag: `https://www.countryflags.io/${item.alpha2Code}/flat/64.png`
+                    }
+                })
+
+                setAreas(areaData)
+
+                if (areaData.length > 0) {
+                    let defaultData = areaData.filter(a => a.code == "US")
+
+                    if (defaultData.length > 0) {
+                        setSelectedArea(defaultData[0])
+                    }
+                }
+            })
+    }, [])
+
+
 
     function renderHeader() {
         return (
@@ -118,7 +156,7 @@ const SignUp = (props) => {
                                 flexDirection: 'row',
                                 ...FONTS.body2
                             }}
-                            onPress={() => console.log("show modals")}
+                            onPress={() => setModalVisible(true)}
                         >
                             <View style={{
                                 justifyContent: 'center',
@@ -133,14 +171,16 @@ const SignUp = (props) => {
                                 />
 
                             </View>
+
+
                             <View style={{ justifyContent: 'center', marginLeft: 5 }}>
                                 <Image
-                                    source={images.usFlag}
+                                    source={{ uri: selectedArea?.flag }}
                                     style={{ width: 30, height: 30 }}
                                 />
                             </View>
                             <View style={{ justifyContent: 'center', marginLeft: 5 }}>
-                                <Text style={{ color: COLORS.white, ...FONTS.body3 }}>US+1</Text>
+                                <Text style={{ color: COLORS.white, ...FONTS.body3 }}>{selectedArea?.callingCode}</Text>
                             </View>
                         </TouchableOpacity>
                         {/* Phone NUmber */}
@@ -178,7 +218,7 @@ const SignUp = (props) => {
                         placeholder="Enter Password"
                         placeholderTextColor={COLORS.white}
                         selectionColor={COLORS.white}
-                        secureTextEntry={true}
+                        secureTextEntry={showPassword}
                     />
                     <TouchableOpacity style={{
                         position: 'absolute',
@@ -187,10 +227,10 @@ const SignUp = (props) => {
                         height: 30,
                         width: 30
                     }}
-                        onPress={() => console.log('Toggle')}
+                        onPress={() => setShowPassword(!showPassword)}
                     >
                         <Image
-                            source={icon.eye}
+                            source={showPassword ? icon.disable_eye : icons.eye}
                             style={{
                                 height: 20,
                                 width: 20,
@@ -221,7 +261,7 @@ const SignUp = (props) => {
                         justifyContent: 'center'
                     }}
 
-                    onPress={() => console.log('navigate to Home')}
+                    onPress={() => navigation.navigate("Home")}
                 >
                     <Text style={{ color: COLORS.white, ...FONTS.h3 }}>Continue</Text>
                 </TouchableOpacity>
@@ -229,7 +269,67 @@ const SignUp = (props) => {
             </View>
         )
     }
+    function renderAreaCodesModal() {
 
+        const renderItem = ({ item }) => {
+            return (
+                <TouchableOpacity
+                    style={{
+                        padding: SIZES.padding,
+                        flexDirection: 'row'
+
+                    }}
+                    onPress={() => {
+                        setSelectedArea(item)
+                        setModalVisible(false)
+                    }}
+                >
+                    <Image
+                        source={{ uri: item.flag }}
+                        style={{
+                            width: 30,
+                            height: 30,
+                            marginRight: 10
+                        }}
+                    />
+                    <Text style={{
+                        ...FONTS.body4
+                    }}>{item.name}</Text>
+
+                </TouchableOpacity>
+            )
+        }
+        return (
+            <Modal
+                animationType='slide'
+                transparent={true}
+                visible={modalVisible}
+            >
+                <TouchableWithoutFeedback
+                    onPress={() => setModalVisible(false)}>
+                    <View style={{ flex: 1, alignItem: 'center', justifyContent: 'center' }}>
+                        <View style={{
+                            height: 400,
+                            width: SIZES.white,
+                            backgroundColor: COLORS.lightGreen,
+                            borderRadius: SIZES.raduis
+                        }}>
+                            <FlatList
+                                data={areas}
+                                renderItem={renderItem}
+                                keyExtractor={(item) => item.code}
+                                showsVerticalScrollIndicator={false}
+                                style={{
+                                    padding: SIZES.padding * 2,
+                                    marginBottom: SIZES.padding * 2
+                                }}
+                            />
+                        </View>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+        )
+    }
     return (
 
         <KeyboardAvoidingView
@@ -248,6 +348,7 @@ const SignUp = (props) => {
                 </ScrollView>
 
             </LinearGradient>
+            {renderAreaCodesModal()}
 
         </KeyboardAvoidingView>
 
